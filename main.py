@@ -1,5 +1,6 @@
 import pandas as pd
 import matplotlib.pyplot as plt
+from datetime import datetime
 from sklearn import svm
 from sklearn.metrics import make_scorer, f1_score
 from sklearn.preprocessing import MinMaxScaler
@@ -29,8 +30,10 @@ def main():
     svc = svm.SVC()
     clf = GridSearchCV(svc, PARAMETERS, scoring='accuracy', n_jobs=-1, cv=10, verbose=3, return_train_score=False)
     clf.fit(x_train, y_train)
+    print('\n-------------------------------------------------------\n')
     print('Best Estimator:\n', clf.best_estimator_)
     print('Best Score:', clf.best_score_)
+    print('\n-------------------------------------------------------\n')
 
     df_test = pd.read_csv(TEST_DATA_PATH).replace(['male', 'female'], [0, 1]).replace(['C', 'S', 'Q'], [0, 1, 2])
     x_test = df_test.drop(['PassengerId', 'Name', 'Ticket', 'Cabin'], axis=1)
@@ -41,7 +44,8 @@ def main():
     test_pred = clf.predict(X=x_test)
     df_pred = pd.DataFrame(test_pred, columns=['Survived'])
     df_test['Survived'] = df_pred['Survived']
-    df_test[['PassengerId', 'Survived']].to_csv('submit.csv', index=False)
+    df_test[['PassengerId', 'Survived']].to_csv('submit/{0:%Y%m%d%M}.csv'.format(datetime.now()), index=False)
+    print('Exit Program')
 
 
 if __name__ == '__main__':
