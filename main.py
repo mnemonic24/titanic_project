@@ -1,5 +1,6 @@
 import pandas as pd
 import matplotlib.pyplot as plt
+import numpy as np
 from datetime import datetime
 from sklearn import svm
 from sklearn.metrics import make_scorer, f1_score
@@ -9,7 +10,9 @@ from sklearn.model_selection import GridSearchCV
 TRAIN_DATA_PATH = 'data/train.csv'
 TEST_DATA_PATH = 'data/test.csv'
 SCORE = make_scorer(f1_score)
-PARAMETERS = {'kernel': ['rbf', 'linear'], 'C': range(1, 10, 2), 'gamma': range(1, 10, 2)}
+KERNEL = ['rbf']
+GAMMA = np.logspace(-3, 3, 7, base=10)
+COST = np.logspace(-3, 3, 7, base=10)
 
 
 def plot_data(df, target):
@@ -20,6 +23,12 @@ def plot_data(df, target):
 
 
 def main():
+    print('\n-------------------------------------------------------\n')
+    print('kernal: ', KERNEL)
+    print('Gamma: ', GAMMA)
+    print('COST: ', COST)
+    print('\n-------------------------------------------------------\n')
+
     df_train = pd.read_csv(TRAIN_DATA_PATH).replace(['male', 'female'], [0, 1]).replace(['C', 'S', 'Q'], [0, 1, 2])
     df_train['Age'].fillna(df_train.Age.mean(), inplace=True)
     df_train['Embarked'].fillna(df_train.Embarked.mean(), inplace=True)
@@ -28,8 +37,10 @@ def main():
     x_train = MinMaxScaler().fit_transform(x_train)
 
     svc = svm.SVC()
-    clf = GridSearchCV(svc, PARAMETERS, scoring='accuracy', n_jobs=-1, cv=10, verbose=3, return_train_score=False)
+    parameter = {'kernel': KERNEL, 'C': COST, 'gamma': GAMMA}
+    clf = GridSearchCV(svc, parameter, scoring='accuracy', n_jobs=-1, cv=5, verbose=3, return_train_score=False)
     clf.fit(x_train, y_train)
+
     print('\n-------------------------------------------------------\n')
     print('Best Estimator:\n', clf.best_estimator_)
     print('Best Score:', clf.best_score_)
@@ -44,8 +55,8 @@ def main():
     test_pred = clf.predict(X=x_test)
     df_pred = pd.DataFrame(test_pred, columns=['Survived'])
     df_test['Survived'] = df_pred['Survived']
-    df_test[['PassengerId', 'Survived']].to_csv('submit/{0:%Y%m%d%M}.csv'.format(datetime.now()), index=False)
-    print('Exit Program')
+    df_test[['PassengerId', 'Survived']].to_csv('submit/{0:%Y%m%d%H%M}.csv'.format(datetime.now()), index=False)
+    print('End Program')
 
 
 if __name__ == '__main__':
