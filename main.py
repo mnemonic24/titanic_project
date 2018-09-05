@@ -10,9 +10,10 @@ from sklearn.model_selection import GridSearchCV
 TRAIN_DATA_PATH = 'data/train.csv'
 TEST_DATA_PATH = 'data/test.csv'
 SCORE = make_scorer(f1_score)
-KERNEL = ['rbf']
+KERNEL = ['rbf', 'linear']
 GAMMA = np.logspace(-3, 3, 7, base=10)
 COST = np.logspace(-3, 3, 7, base=10)
+NAME_LIST = ['Mr', 'Mrs', 'Miss', 'Master']
 
 
 def plot_data(df, target):
@@ -20,6 +21,13 @@ def plot_data(df, target):
     temp = [data[target].dropna() for data in split_data]
     plt.hist(temp, histtype="barstacked", bins=16)
     plt.show()
+
+
+def name_mean(df):
+    for name in NAME_LIST:
+        mean = df['Age'][df.Name.str.contains(name)].dropna().mean()
+        df.loc[df['Name'].str.contains(name), 'Age'] = df.loc[df['Name'].str.contains(name), 'Age'].fillna(mean)
+    return df
 
 
 def main():
@@ -30,6 +38,11 @@ def main():
     print('\n-------------------------------------------------------\n')
 
     df_train = pd.read_csv(TRAIN_DATA_PATH).replace(['male', 'female'], [0, 1]).replace(['C', 'S', 'Q'], [0, 1, 2])
+    print(df_train.info())
+    print('NaN numbers:\n', df_train.isnull().sum())
+    print('\n-------------------------------------------------------\n')
+
+    df_train = name_mean(df_train)
     df_train['Age'].fillna(df_train.Age.mean(), inplace=True)
     df_train['Embarked'].fillna(df_train.Embarked.mean(), inplace=True)
     x_train = df_train.drop(['PassengerId', 'Survived', 'Name', 'Ticket', 'Cabin'], axis=1)
@@ -38,7 +51,7 @@ def main():
 
     svc = svm.SVC()
     parameter = {'kernel': KERNEL, 'C': COST, 'gamma': GAMMA}
-    clf = GridSearchCV(svc, parameter, scoring='accuracy', n_jobs=-1, cv=5, verbose=3, return_train_score=False)
+    clf = GridSearchCV(svc, parameter, scoring='accuracy', n_jobs=-1, cv=10, verbose=3, return_train_score=False)
     clf.fit(x_train, y_train)
 
     print('\n-------------------------------------------------------\n')
@@ -47,8 +60,13 @@ def main():
     print('\n-------------------------------------------------------\n')
 
     df_test = pd.read_csv(TEST_DATA_PATH).replace(['male', 'female'], [0, 1]).replace(['C', 'S', 'Q'], [0, 1, 2])
+    print(df_test.info())
+    print('NaN numbers:\n', df_test.isnull().sum())
+    print('\n-------------------------------------------------------\n')
+
+    df_test = name_mean(df_test)
     x_test = df_test.drop(['PassengerId', 'Name', 'Ticket', 'Cabin'], axis=1)
-    x_test['Age'].fillna(x_test.Age.median(), inplace=True)
+    x_test['Age'].fillna(x_test.Age.mean(), inplace=True)
     x_test['Fare'].fillna(x_test.Fare.mean(), inplace=True)
     x_test = MinMaxScaler().fit_transform(x_test)
 
