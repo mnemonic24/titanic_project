@@ -3,17 +3,18 @@ import matplotlib.pyplot as plt
 import numpy as np
 from datetime import datetime
 from sklearn import svm
-from sklearn.metrics import make_scorer, f1_score
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import GridSearchCV
 
 TRAIN_DATA_PATH = 'data/train.csv'
 TEST_DATA_PATH = 'data/test.csv'
-SCORE = make_scorer(f1_score)
 KERNEL = ['rbf', 'linear']
 GAMMA = np.logspace(-3, 3, 7, base=10)
 COST = np.logspace(-3, 3, 7, base=10)
 NAME_LIST = ['Mr', 'Mrs', 'Miss', 'Master']
+TRAIN_DROP_LIST = ['PassengerId', 'Survived', 'Name', 'Ticket', 'Cabin']
+TEST_DROP_LIST = ['PassengerId', 'Name', 'Ticket', 'Cabin']
+CV = 10
 
 
 def plot_data(df, target):
@@ -30,6 +31,18 @@ def name_mean(df):
     return df
 
 
+def processing_data(path):
+    df = pd.read_csv(path).replace(['male', 'female'], [0, 1]).replace(['C', 'S', 'Q'], [0, 1, 2])
+    print(df.info())
+    print('NaN numbers:\n', df.isnull().sum())
+    print('\n-------------------------------------------------------\n')
+
+    df = name_mean(df)
+    df.fillna(df.mean(), inplace=True)
+    print('\n-------------------------------------------------------\n')
+    return df
+
+
 def main():
     print('\n-------------------------------------------------------\n')
     print('kernal: ', KERNEL)
@@ -37,38 +50,25 @@ def main():
     print('COST: ', COST)
     print('\n-------------------------------------------------------\n')
 
-    df_train = pd.read_csv(TRAIN_DATA_PATH).replace(['male', 'female'], [0, 1]).replace(['C', 'S', 'Q'], [0, 1, 2])
-    print(df_train.info())
-    print('NaN numbers:\n', df_train.isnull().sum())
-    print('\n-------------------------------------------------------\n')
-
-    df_train = name_mean(df_train)
-    df_train['Age'].fillna(df_train.Age.mean(), inplace=True)
-    df_train['Embarked'].fillna(df_train.Embarked.mean(), inplace=True)
-    x_train = df_train.drop(['PassengerId', 'Survived', 'Name', 'Ticket', 'Cabin'], axis=1)
+    df_train = processing_data(TRAIN_DATA_PATH)
+    x_train = df_train.drop(TRAIN_DROP_LIST, axis=1)
     y_train = df_train['Survived']
     x_train = MinMaxScaler().fit_transform(x_train)
+    print('\n-------------------------------------------------------\n')
+
+    df_test = processing_data(TEST_DATA_PATH)
+    x_test = df_test.drop(TEST_DROP_LIST, axis=1)
+    x_test = MinMaxScaler().fit_transform(x_test)
+    print('\n-------------------------------------------------------\n')
 
     svc = svm.SVC()
     parameter = {'kernel': KERNEL, 'C': COST, 'gamma': GAMMA}
-    clf = GridSearchCV(svc, parameter, scoring='accuracy', n_jobs=-1, cv=10, verbose=3, return_train_score=False)
+    clf = GridSearchCV(svc, parameter, scoring='accuracy', n_jobs=-1, cv=CV, verbose=3, return_train_score=False)
     clf.fit(x_train, y_train)
 
-    print('\n-------------------------------------------------------\n')
     print('Best Estimator:\n', clf.best_estimator_)
     print('Best Score:', clf.best_score_)
     print('\n-------------------------------------------------------\n')
-
-    df_test = pd.read_csv(TEST_DATA_PATH).replace(['male', 'female'], [0, 1]).replace(['C', 'S', 'Q'], [0, 1, 2])
-    print(df_test.info())
-    print('NaN numbers:\n', df_test.isnull().sum())
-    print('\n-------------------------------------------------------\n')
-
-    df_test = name_mean(df_test)
-    x_test = df_test.drop(['PassengerId', 'Name', 'Ticket', 'Cabin'], axis=1)
-    x_test['Age'].fillna(x_test.Age.mean(), inplace=True)
-    x_test['Fare'].fillna(x_test.Fare.mean(), inplace=True)
-    x_test = MinMaxScaler().fit_transform(x_test)
 
     test_pred = clf.predict(X=x_test)
     df_pred = pd.DataFrame(test_pred, columns=['Survived'])
