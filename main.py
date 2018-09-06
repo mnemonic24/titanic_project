@@ -12,8 +12,8 @@ KERNEL = ['rbf', 'linear']
 GAMMA = np.logspace(-3, 3, 7, base=10)
 COST = np.logspace(-3, 3, 7, base=10)
 NAME_LIST = ['Mr', 'Mrs', 'Miss', 'Master']
-TRAIN_DROP_LIST = ['PassengerId', 'Survived', 'Name', 'Ticket', 'Cabin']
-TEST_DROP_LIST = ['PassengerId', 'Name', 'Ticket', 'Cabin']
+TRAIN_DROP_LIST = ['PassengerId', 'Survived', 'Name', 'Ticket', 'Cabin', 'Sex', 'Embarked']
+TEST_DROP_LIST = ['PassengerId', 'Name', 'Ticket', 'Cabin', 'Sex', 'Embarked']
 CV = 10
 
 
@@ -32,13 +32,17 @@ def name_mean(df):
 
 
 def processing_data(path):
-    df = pd.read_csv(path).replace(['male', 'female'], [0, 1]).replace(['C', 'S', 'Q'], [0, 1, 2])
+    df = pd.read_csv(path)
+    print(df.columns)
     print(df.info())
-    print('NaN numbers:\n', df.isnull().sum())
+    print('NaN numbers:')
+    print(df.isnull().sum())
     print('\n-------------------------------------------------------\n')
 
     df = name_mean(df)
     df.fillna(df.mean(), inplace=True)
+    df = pd.concat([df, pd.get_dummies(df[['Sex', 'Embarked']])], axis=1)
+    print(df.isnull().sum())
     print('\n-------------------------------------------------------\n')
     return df
 
